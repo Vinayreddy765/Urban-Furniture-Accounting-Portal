@@ -6,10 +6,12 @@ CREATE TABLE IF NOT EXISTS contacts (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(150) NOT NULL,
   type ENUM('Customer','Vendor','Both') NOT NULL,
-  email VARCHAR(150),
+  email VARCHAR(150) NOT NULL UNIQUE,
   mobile VARCHAR(20),
+  street VARCHAR(200),
   city VARCHAR(100),
   state VARCHAR(100),
+  country VARCHAR(100),
   pincode VARCHAR(12),
   profile_image VARCHAR(255),
   is_archived BOOLEAN NOT NULL DEFAULT FALSE,
@@ -32,6 +34,12 @@ CREATE TABLE IF NOT EXISTS users (
   FOREIGN KEY (contact_id) REFERENCES contacts(id)
 );
 
+-- ─── Product Categories (Many2one, create-on-the-fly from the Product form) ─
+CREATE TABLE IF NOT EXISTS product_categories (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL UNIQUE
+);
+
 -- ─── Products ───────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS products (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -39,9 +47,11 @@ CREATE TABLE IF NOT EXISTS products (
   type ENUM('Goods','Service','Combo') NOT NULL,
   sales_price DECIMAL(12,2) NOT NULL DEFAULT 0,
   cost_price DECIMAL(12,2) NOT NULL DEFAULT 0,
-  category VARCHAR(100),
+  category_id INT,
+  profile_image VARCHAR(255),
   is_archived BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (category_id) REFERENCES product_categories(id)
 );
 
 -- ─── Chart of Accounts ──────────────────────────────────────────

@@ -5,6 +5,13 @@ const morgan = require('morgan');
 
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 const authRoutes = require('./routes/auth.routes');
+const contactRoutes = require('./routes/contact.routes');
+const productRoutes = require('./routes/product.routes');
+const accountRoutes = require('./routes/account.routes');
+const journalRoutes = require('./routes/journal.routes');
+const purchaseOrderRoutes = require('./routes/purchaseOrder.routes');
+const vendorBillRoutes = require('./routes/vendorBill.routes');
+const paymentRoutes = require('./routes/payment.routes');
 
 const app = express();
 
@@ -15,9 +22,14 @@ app.use(morgan('dev'));
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 app.use('/api/auth', authRoutes);
-// Next: /api/contacts, /api/products, /api/accounts, /api/journals,
-// /api/purchase-orders, /api/vendor-bills, /api/sales-orders,
-// /api/customer-invoices, /api/payments, /api/reports
+app.use('/api/contacts', contactRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/accounts', accountRoutes);
+app.use('/api/journals', journalRoutes);
+app.use('/api/purchase-orders', purchaseOrderRoutes);
+app.use('/api/vendor-bills', vendorBillRoutes);
+app.use('/api/payments', paymentRoutes);
+// Next: /api/sales-orders, /api/customer-invoices, /api/reports
 
 app.use(notFound);
 app.use(errorHandler);
