@@ -32,8 +32,4 @@ Administrator login: `admin01` / `Admin@12345`
 5. Frontend — role-aware nav (Administrator / Accountant / User-portal), matching your mockups
 6. Contact portal — restricted view/pay-own-dues only
 
-## Design decisions worth knowing for reviewer questions
 
-- **"Password must be unique"** is implemented as: no two users may share the same plaintext password, checked via `bcrypt.compare` against every existing hash before creating an account. This is O(n) in user count — fine at hackathon scale, would need a different mechanism at real scale, but faithfully implements the literal requirement.
-- **Journal entries support N lines**, not a rigid single debit/credit pair — needed for tax lines on invoices (Debtors / Sales Income / Tax Payable is a 3-line entry).
-- **Bank/Cash journals** store one fixed `cash_or_bank_account_id` rather than a debit/credit pair, since the other leg of a payment (Debtors or Creditors) depends on the contact and direction (Receive vs Pay) — not something a journal can hardcode.
