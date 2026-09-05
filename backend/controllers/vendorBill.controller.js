@@ -48,7 +48,10 @@ const createFromPO = asyncHandler(async (req, res) => {
 
     const [[purchaseExpenseAccount]] = await conn.query(`SELECT id FROM accounts WHERE name = 'Purchase Expense'`);
     const [[creditorsAccount]] = await conn.query(`SELECT id FROM accounts WHERE name = 'Creditors'`);
-    const [[purchaseJournal]] = await conn.query(`SELECT id FROM journals WHERE type = 'Purchase' LIMIT 1`);
+    const [[purchaseJournal]] = await conn.query(`SELECT id FROM journals WHERE type = 'Purchase' AND is_archived = FALSE LIMIT 1`);
+    if (!purchaseExpenseAccount || !creditorsAccount || !purchaseJournal) {
+      throw new AppError('Required Purchase Journal/accounts are missing. Run the seed script.', 500);
+    }
 
     const [billResult] = await conn.query(
       `INSERT INTO vendor_bills (po_id, vendor_id, invoice_date, due_date, status, total)

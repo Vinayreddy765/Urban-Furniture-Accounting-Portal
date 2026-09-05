@@ -1,0 +1,10 @@
+const router=require('express').Router();
+const {body}=require('express-validator');
+const validate=require('../middleware/validate');
+const {authenticate,authorize}=require('../middleware/auth');
+const ctrl=require('../controllers/salesOrder.controller');
+router.use(authenticate,authorize('Administrator','Accountant'));
+router.get('/',ctrl.list); router.get('/:id',ctrl.getById);
+router.post('/',[body('customerId').isInt(),body('orderDate').isISO8601(),body('lines').isArray({min:1})],validate,ctrl.create);
+router.patch('/:id/confirm',ctrl.confirm);
+module.exports=router;

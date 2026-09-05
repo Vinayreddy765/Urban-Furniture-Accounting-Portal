@@ -6,7 +6,7 @@ const ctrl = require('../controllers/account.controller');
 
 router.use(authenticate);
 
-router.get('/', ctrl.list);
+router.get('/', authorize('Administrator', 'Accountant'), ctrl.list);
 
 router.post(
   '/',
@@ -19,6 +19,7 @@ router.post(
   ctrl.create
 );
 
+router.put('/:id', authorize('Administrator'), ctrl.update);
 router.patch('/:id/archive', authorize('Administrator'), ctrl.archive);
 
 module.exports = router;

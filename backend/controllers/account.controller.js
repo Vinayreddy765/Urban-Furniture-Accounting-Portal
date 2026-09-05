@@ -8,7 +8,7 @@ const list = asyncHandler(async (req, res) => {
   const clauses = [];
   const params = [];
 
-  if (!includeArchived) clauses.push('is_archived = FALSE');
+  if (!(includeArchived === true || includeArchived === 'true')) clauses.push('is_archived = FALSE');
   if (type) { clauses.push('type = ?'); params.push(type); }
 
   const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
@@ -25,6 +25,15 @@ const create = asyncHandler(async (req, res) => {
 
 // Archive only — an account with existing journal_entry_lines must never be
 // deleted, or historical reports would silently lose data.
+const update = asyncHandler(async (req, res) => {
+  const [[account]] = await pool.query('SELECT * FROM accounts WHERE id = ?', [req.params.id]);
+  if (!account) throw new AppError('Account not found', 404);
+  const { name, type } = req.body;
+  await pool.query('UPDATE accounts SET name = ?, type = ? WHERE id = ?', [name ?? account.name, type ?? account.type, req.params.id]);
+  const [[updated]] = await pool.query('SELECT * FROM accounts WHERE id = ?', [req.params.id]);
+  return ok(res, updated);
+});
+
 const archive = asyncHandler(async (req, res) => {
   const [[account]] = await pool.query('SELECT * FROM accounts WHERE id = ?', [req.params.id]);
   if (!account) throw new AppError('Account not found', 404);
@@ -34,4 +43,4 @@ const archive = asyncHandler(async (req, res) => {
   return ok(res, updated);
 });
 
-module.exports = { list, create, archive };
+module.exports = { list, create, update, archive };

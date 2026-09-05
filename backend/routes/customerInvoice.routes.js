@@ -1,0 +1,10 @@
+const router=require('express').Router();
+const {body}=require('express-validator');
+const validate=require('../middleware/validate');
+const {authenticate,authorize}=require('../middleware/auth');
+const ctrl=require('../controllers/customerInvoice.controller');
+router.use(authenticate);
+router.get('/',authorize('Administrator','Accountant'),ctrl.list);
+router.get('/:id',authorize('Administrator','Accountant','User'),ctrl.getById);
+router.post('/from-so',authorize('Administrator','Accountant'),[body('soId').isInt(),body('invoiceDate').isISO8601()],validate,ctrl.createFromSO);
+module.exports=router;

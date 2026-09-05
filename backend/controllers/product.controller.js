@@ -26,7 +26,7 @@ const list = asyncHandler(async (req, res) => {
   const clauses = [];
   const params = [];
 
-  if (!includeArchived) clauses.push('p.is_archived = FALSE');
+  if (!(includeArchived === true || includeArchived === 'true')) clauses.push('p.is_archived = FALSE');
   if (categoryId) { clauses.push('p.category_id = ?'); params.push(categoryId); }
 
   const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';

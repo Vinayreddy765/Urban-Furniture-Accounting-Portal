@@ -1,11 +1,10 @@
 CREATE DATABASE IF NOT EXISTS ufa;
 USE ufa;
 
--- ─── Contacts (created first — users of type 'User' link here) ────
 CREATE TABLE IF NOT EXISTS contacts (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(150) NOT NULL,
-  type ENUM('Customer','Vendor','Both') NOT NULL,
+  type ENUM('Customer','Vendor') NOT NULL,
   email VARCHAR(150) NOT NULL UNIQUE,
   mobile VARCHAR(20),
   street VARCHAR(200),
@@ -18,29 +17,26 @@ CREATE TABLE IF NOT EXISTS contacts (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- ─── Users & Auth ───────────────────────────────────────────────
--- role: Administrator (full access), Accountant (invoicing user, self-signup),
--- User (portal login, created by Admin, tied to exactly one Contact).
+-- Administrator = business owner, Accountant = internal invoicing user,
+-- User = external Contact portal user linked to exactly one Contact.
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(120),
-  login_id VARCHAR(12) NOT NULL UNIQUE,   -- 6-12 chars, enforced in app layer
+  login_id VARCHAR(12) NOT NULL UNIQUE,
   email VARCHAR(150) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   role ENUM('Administrator','Accountant','User') NOT NULL,
-  contact_id INT NULL,                    -- set only when role = 'User'
+  contact_id INT NULL,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (contact_id) REFERENCES contacts(id)
 );
 
--- ─── Product Categories (Many2one, create-on-the-fly from the Product form) ─
 CREATE TABLE IF NOT EXISTS product_categories (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) NOT NULL UNIQUE
 );
 
--- ─── Products ───────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS products (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(150) NOT NULL,
@@ -54,7 +50,6 @@ CREATE TABLE IF NOT EXISTS products (
   FOREIGN KEY (category_id) REFERENCES product_categories(id)
 );
 
--- ─── Chart of Accounts ──────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS accounts (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) NOT NULL UNIQUE,
@@ -62,23 +57,22 @@ CREATE TABLE IF NOT EXISTS accounts (
   is_archived BOOLEAN NOT NULL DEFAULT FALSE
 );
 
--- ─── Journals ───────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS journals (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
+  name VARCHAR(100) NOT NULL UNIQUE,
   type ENUM('Sales','Purchase','Bank','Cash') NOT NULL,
-  default_debit_account_id INT,     -- used by Sales/Purchase journals
-  default_credit_account_id INT,    -- used by Sales/Purchase journals
-  cash_or_bank_account_id INT,      -- used by Bank/Cash journals (the one fixed leg; the other leg is Debtors/Creditors)
+  default_debit_account_id INT,
+  default_credit_account_id INT,
+  cash_or_bank_account_id INT,
+  is_archived BOOLEAN NOT NULL DEFAULT FALSE,
   FOREIGN KEY (default_debit_account_id) REFERENCES accounts(id),
   FOREIGN KEY (default_credit_account_id) REFERENCES accounts(id),
   FOREIGN KEY (cash_or_bank_account_id) REFERENCES accounts(id)
 );
 
--- ─── Analytic Accounts & Budgets ────────────────────────────────
 CREATE TABLE IF NOT EXISTS analytic_accounts (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) NOT NULL,
+  name VARCHAR(100) NOT NULL UNIQUE,
   type ENUM('Income','Expense') NOT NULL
 );
 
@@ -93,7 +87,6 @@ CREATE TABLE IF NOT EXISTS budgets (
   FOREIGN KEY (analytic_account_id) REFERENCES analytic_accounts(id)
 );
 
--- ─── Journal Entries (the ledger — every transaction posts here) ─
 CREATE TABLE IF NOT EXISTS journal_entries (
   id INT AUTO_INCREMENT PRIMARY KEY,
   journal_id INT NOT NULL,
@@ -117,7 +110,6 @@ CREATE TABLE IF NOT EXISTS journal_entry_lines (
   FOREIGN KEY (analytic_account_id) REFERENCES analytic_accounts(id)
 );
 
--- ─── Purchase flow ──────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS purchase_orders (
   id INT AUTO_INCREMENT PRIMARY KEY,
   vendor_id INT NOT NULL,
@@ -133,8 +125,10 @@ CREATE TABLE IF NOT EXISTS purchase_order_lines (
   product_id INT NOT NULL,
   quantity DECIMAL(10,2) NOT NULL,
   unit_price DECIMAL(12,2) NOT NULL,
+  analytic_account_id INT NULL,
   FOREIGN KEY (po_id) REFERENCES purchase_orders(id) ON DELETE CASCADE,
-  FOREIGN KEY (product_id) REFERENCES products(id)
+  FOREIGN KEY (product_id) REFERENCES products(id),
+  FOREIGN KEY (analytic_account_id) REFERENCES analytic_accounts(id)
 );
 
 CREATE TABLE IF NOT EXISTS vendor_bills (
@@ -152,7 +146,6 @@ CREATE TABLE IF NOT EXISTS vendor_bills (
   FOREIGN KEY (journal_entry_id) REFERENCES journal_entries(id)
 );
 
--- ─── Sales flow ─────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS sales_orders (
   id INT AUTO_INCREMENT PRIMARY KEY,
   customer_id INT NOT NULL,
@@ -169,8 +162,10 @@ CREATE TABLE IF NOT EXISTS sales_order_lines (
   quantity DECIMAL(10,2) NOT NULL,
   unit_price DECIMAL(12,2) NOT NULL,
   tax_percent DECIMAL(5,2) NOT NULL DEFAULT 0,
+  analytic_account_id INT NULL,
   FOREIGN KEY (so_id) REFERENCES sales_orders(id) ON DELETE CASCADE,
-  FOREIGN KEY (product_id) REFERENCES products(id)
+  FOREIGN KEY (product_id) REFERENCES products(id),
+  FOREIGN KEY (analytic_account_id) REFERENCES analytic_accounts(id)
 );
 
 CREATE TABLE IF NOT EXISTS customer_invoices (
@@ -180,6 +175,8 @@ CREATE TABLE IF NOT EXISTS customer_invoices (
   invoice_date DATE NOT NULL,
   due_date DATE,
   status ENUM('Draft','Posted','PartiallyPaid','Paid') NOT NULL DEFAULT 'Draft',
+  subtotal DECIMAL(14,2) NOT NULL DEFAULT 0,
+  tax_total DECIMAL(14,2) NOT NULL DEFAULT 0,
   total DECIMAL(14,2) NOT NULL,
   amount_paid DECIMAL(14,2) NOT NULL DEFAULT 0,
   journal_entry_id INT NULL,
@@ -188,7 +185,22 @@ CREATE TABLE IF NOT EXISTS customer_invoices (
   FOREIGN KEY (journal_entry_id) REFERENCES journal_entries(id)
 );
 
--- ─── Payments (against a bill OR an invoice, never both) ───────
+CREATE TABLE IF NOT EXISTS customer_invoice_lines (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  invoice_id INT NOT NULL,
+  product_id INT NOT NULL,
+  quantity DECIMAL(10,2) NOT NULL,
+  unit_price DECIMAL(12,2) NOT NULL,
+  tax_percent DECIMAL(5,2) NOT NULL DEFAULT 0,
+  line_subtotal DECIMAL(14,2) NOT NULL,
+  tax_amount DECIMAL(14,2) NOT NULL DEFAULT 0,
+  line_total DECIMAL(14,2) NOT NULL,
+  analytic_account_id INT NULL,
+  FOREIGN KEY (invoice_id) REFERENCES customer_invoices(id) ON DELETE CASCADE,
+  FOREIGN KEY (product_id) REFERENCES products(id),
+  FOREIGN KEY (analytic_account_id) REFERENCES analytic_accounts(id)
+);
+
 CREATE TABLE IF NOT EXISTS payments (
   id INT AUTO_INCREMENT PRIMARY KEY,
   contact_id INT NOT NULL,

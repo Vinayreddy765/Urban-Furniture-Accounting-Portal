@@ -13,6 +13,7 @@ const list = asyncHandler(async (req, res) => {
     LEFT JOIN accounts da ON da.id = j.default_debit_account_id
     LEFT JOIN accounts ca ON ca.id = j.default_credit_account_id
     LEFT JOIN accounts cb ON cb.id = j.cash_or_bank_account_id
+    WHERE j.is_archived = FALSE
     ORDER BY j.type, j.name
   `);
   return ok(res, rows);
@@ -38,4 +39,22 @@ const create = asyncHandler(async (req, res) => {
   return ok(res, journal, 201);
 });
 
-module.exports = { list, create };
+const update = asyncHandler(async (req, res) => {
+  const [[journal]] = await pool.query('SELECT * FROM journals WHERE id = ?', [req.params.id]);
+  if (!journal) throw new AppError('Journal not found', 404);
+  const { name, type, defaultDebitAccountId, defaultCreditAccountId, cashOrBankAccountId } = req.body;
+  await pool.query(`UPDATE journals SET name=?, type=?, default_debit_account_id=?, default_credit_account_id=?, cash_or_bank_account_id=? WHERE id=?`, [
+    name ?? journal.name, type ?? journal.type, defaultDebitAccountId ?? journal.default_debit_account_id, defaultCreditAccountId ?? journal.default_credit_account_id, cashOrBankAccountId ?? journal.cash_or_bank_account_id, req.params.id
+  ]);
+  const [[updated]] = await pool.query('SELECT * FROM journals WHERE id = ?', [req.params.id]);
+  return ok(res, updated);
+});
+
+const archive = asyncHandler(async (req, res) => {
+  const [[journal]] = await pool.query('SELECT * FROM journals WHERE id = ?', [req.params.id]);
+  if (!journal) throw new AppError('Journal not found', 404);
+  await pool.query('UPDATE journals SET is_archived = TRUE WHERE id = ?', [req.params.id]);
+  return ok(res, { ...journal, is_archived: true });
+});
+
+module.exports = { list, create, update, archive };

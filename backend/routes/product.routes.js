@@ -6,9 +6,9 @@ const ctrl = require('../controllers/product.controller');
 
 router.use(authenticate);
 
-router.get('/', ctrl.list);
-router.get('/categories', ctrl.listCategories);
-router.get('/:id', ctrl.getById);
+router.get('/', authorize('Administrator', 'Accountant'), ctrl.list);
+router.get('/categories', authorize('Administrator', 'Accountant'), ctrl.listCategories);
+router.get('/:id', authorize('Administrator', 'Accountant'), ctrl.getById);
 
 router.post(
   '/',
@@ -22,7 +22,7 @@ router.post(
   ctrl.create
 );
 
-router.put('/:id', authorize('Administrator', 'Accountant'), ctrl.update);
-router.patch('/:id/archive', authorize('Administrator', 'Accountant'), ctrl.archive);
+router.put('/:id', authorize('Administrator'), ctrl.update);
+router.patch('/:id/archive', authorize('Administrator'), ctrl.archive);
 
 module.exports = router;

@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: #EEE8DA;
+  color: #2A2118;
+  font-family: 'IBM Plex Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display {
+  font-family: 'Fraunces', serif;
+}
+
+.font-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: #D9C08F;
+}
+
+/* Ledger table rules instead of card shadows */
+.ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ledger-table thead th {
+  text-align: left;
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: #6B6153;
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1.5px solid #2A2118;
+  white-space: nowrap;
+}
+
+.ledger-table tbody td {
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid #D9CFB8;
+  font-size: 0.9rem;
+  vertical-align: middle;
+}
+
+.ledger-table tbody tr:hover {
+  background-color: rgba(173, 138, 80, 0.08);
+}
+
+/* focus visibility */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #AD8A50;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
