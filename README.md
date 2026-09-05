@@ -1,4 +1,4 @@
-# Urban Furniture — Accounting System
+# Urban Furniture - Accounting System
 
 Built for the Odoo Hackathon 2026 finale, 24-hour round.
 
@@ -31,5 +31,4 @@ Administrator login: `admin01` / `Admin@12345`
 4. Reports — Balance Sheet, P&L, Budget Report (all pure aggregation off `journal_entry_lines`)
 5. Frontend — role-aware nav (Administrator / Accountant / User-portal), matching your mockups
 6. Contact portal — restricted view/pay-own-dues only
-
 
