@@ -4,6 +4,7 @@ import { useAuth } from './context/AuthContext.jsx';
 import Layout from './components/Layout.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
+import Users from './pages/Users.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Contacts from './pages/Contacts.jsx';
 import Products from './pages/Products.jsx';
@@ -16,10 +17,13 @@ import VendorBills from './pages/VendorBills.jsx';
 import SalesOrders from './pages/SalesOrders.jsx';
 import CustomerInvoices from './pages/CustomerInvoices.jsx';
 import Payments from './pages/Payments.jsx';
+import JournalEntries from './pages/JournalEntries.jsx';
 import MyInvoices from './pages/MyInvoices.jsx';
 import BalanceSheet from './pages/reports/BalanceSheet.jsx';
 import ProfitLoss from './pages/reports/ProfitLoss.jsx';
 import BudgetReport from './pages/reports/BudgetReport.jsx';
+import StockReport from './pages/reports/StockReport.jsx';
+import TrialBalance from './pages/reports/TrialBalance.jsx';
 
 function RequireAuth({ children, roles }) {
   const { user } = useAuth();
@@ -61,6 +65,8 @@ export default function App() {
         </RequireAuth>
       }
     />
+
+    <Route path="/users" element={<RequireAuth roles={["Administrator"]}><Users /></RequireAuth>} />
 
     <Route
       path="/products"
@@ -153,6 +159,15 @@ export default function App() {
     />
 
     <Route
+      path="/journal-entries"
+      element={
+        <RequireAuth roles={["Administrator", "Accountant"]}>
+          <JournalEntries />
+        </RequireAuth>
+      }
+    />
+
+    <Route
       path="/reports/balance-sheet"
       element={
         <RequireAuth roles={["Administrator", "Accountant"]}>
@@ -178,6 +193,17 @@ export default function App() {
         </RequireAuth>
       }
     />
+
+    <Route
+      path="/reports/stock"
+      element={
+        <RequireAuth roles={["Administrator", "Accountant"]}>
+          <StockReport />
+        </RequireAuth>
+      }
+    />
+
+    <Route path="/reports/trial-balance" element={<RequireAuth roles={["Administrator", "Accountant"]}><TrialBalance /></RequireAuth>} />
 
     {/* User / Contact portal */}
     <Route

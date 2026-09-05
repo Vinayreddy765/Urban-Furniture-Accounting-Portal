@@ -42,16 +42,35 @@ const createFromPO = asyncHandler(async (req, res) => {
     if (po.status !== 'Confirmed') {
       throw new AppError('Only a Confirmed Purchase Order can be converted to a Bill', 422);
     }
+    if (dueDate && dueDate < invoiceDate) throw new AppError('Due date cannot be before invoice date', 422);
 
     const [[existingBill]] = await conn.query('SELECT id FROM vendor_bills WHERE po_id = ?', [poId]);
     if (existingBill) throw new AppError('This Purchase Order already has a Bill', 422);
 
-    const [[purchaseExpenseAccount]] = await conn.query(`SELECT id FROM accounts WHERE name = 'Purchase Expense'`);
-    const [[creditorsAccount]] = await conn.query(`SELECT id FROM accounts WHERE name = 'Creditors'`);
-    const [[purchaseJournal]] = await conn.query(`SELECT id FROM journals WHERE type = 'Purchase' AND is_archived = FALSE LIMIT 1`);
-    if (!purchaseExpenseAccount || !creditorsAccount || !purchaseJournal) {
+    const [[vendor]] = await conn.query('SELECT id, is_archived FROM contacts WHERE id = ?', [po.vendor_id]);
+    if (!vendor || vendor.is_archived) throw new AppError('Cannot bill an archived vendor', 422);
+
+    const [poLines] = await conn.query(
+      `SELECT pol.product_id, pol.quantity, pol.unit_price, pol.analytic_account_id, p.type, p.is_archived
+       FROM purchase_order_lines pol JOIN products p ON p.id = pol.product_id
+       WHERE pol.po_id = ?`,
+      [poId]
+    );
+    if (!poLines.length) throw new AppError('Purchase Order has no line items', 422);
+    if (poLines.some(line => line.is_archived)) throw new AppError('Cannot bill a Purchase Order containing an archived product', 422);
+
+    const [[purchaseJournal]] = await conn.query(`
+      SELECT id, default_debit_account_id, default_credit_account_id
+      FROM journals WHERE type = 'Purchase' AND is_archived = FALSE LIMIT 1
+    `);
+    if (!purchaseJournal || !purchaseJournal.default_debit_account_id || !purchaseJournal.default_credit_account_id) {
       throw new AppError('Required Purchase Journal/accounts are missing. Run the seed script.', 500);
     }
+    const [postingAccounts] = await conn.query(
+      'SELECT id FROM accounts WHERE id IN (?, ?) AND is_archived = FALSE',
+      [purchaseJournal.default_debit_account_id, purchaseJournal.default_credit_account_id]
+    );
+    if (postingAccounts.length !== 2) throw new AppError('Purchase Journal has an invalid or archived default account', 422);
 
     const [billResult] = await conn.query(
       `INSERT INTO vendor_bills (po_id, vendor_id, invoice_date, due_date, status, total)
@@ -67,12 +86,22 @@ const createFromPO = asyncHandler(async (req, res) => {
       sourceType: 'VendorBill',
       sourceId: billId,
       lines: [
-        { accountId: purchaseExpenseAccount.id, debit: po.total, credit: 0 },
-        { accountId: creditorsAccount.id, debit: 0, credit: po.total },
+        ...poLines.map(line => ({
+          accountId: purchaseJournal.default_debit_account_id,
+          debit: Number(line.quantity) * Number(line.unit_price),
+          credit: 0,
+          analyticAccountId: line.analytic_account_id,
+        })),
+        { accountId: purchaseJournal.default_credit_account_id, debit: 0, credit: po.total },
       ],
     });
 
     await conn.query('UPDATE vendor_bills SET journal_entry_id = ? WHERE id = ?', [journalEntryId, billId]);
+    for (const line of poLines) {
+      if (line.type === 'Goods') {
+        await conn.query('UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?', [line.quantity, line.product_id]);
+      }
+    }
 
     await conn.commit();
     const [[bill]] = await pool.query(`${BILL_SELECT} WHERE vb.id = ?`, [billId]);

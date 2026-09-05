@@ -35,6 +35,12 @@ const create = asyncHandler(async (req, res) => {
     if (!portalUser || !portalUser.loginId || !/^[A-Za-z0-9._-]{6,12}$/.test(portalUser.loginId)) throw new AppError('Portal Login Id must be 6-12 characters and use letters, numbers, dot, underscore, or hyphen', 422);
     if (!portalUser.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(portalUser.email)) throw new AppError('A valid portal user email is required', 422);
     if (!portalUser.password || portalUser.password.length < 9 || !/(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9])/.test(portalUser.password)) throw new AppError('Portal password must be more than 8 characters and contain lowercase, uppercase, and special characters', 422);
+    const [users] = await pool.query('SELECT password_hash FROM users');
+    for (const user of users) {
+      if (await bcrypt.compare(portalUser.password, user.password_hash)) {
+        throw new AppError('This password is already in use - please choose a different one', 422);
+      }
+    }
   }
 
   const conn = await pool.getConnection();
@@ -79,6 +85,7 @@ const update = asyncHandler(async (req, res) => {
   const { name, type, email, mobile, street, city, state, country, pincode, profileImage } = req.body;
   const [[existing]] = await pool.query('SELECT * FROM contacts WHERE id = ?', [req.params.id]);
   if (!existing) throw new AppError('Contact not found', 404);
+  if (existing.is_archived) throw new AppError('Restore the contact before editing it', 422);
   await pool.query(
     `UPDATE contacts SET name=?, type=?, email=?, mobile=?, street=?, city=?, state=?, country=?, pincode=?, profile_image=? WHERE id=?`,
     [name ?? existing.name, type ?? existing.type, email ?? existing.email, mobile ?? existing.mobile, street ?? existing.street, city ?? existing.city, state ?? existing.state, country ?? existing.country, pincode ?? existing.pincode, profileImage ?? existing.profile_image, req.params.id]

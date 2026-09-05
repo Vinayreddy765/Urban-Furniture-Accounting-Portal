@@ -35,7 +35,7 @@ const create = asyncHandler(async (req, res) => {
   }
 
   const [[aa]] = await pool.query(
-    'SELECT id FROM analytic_accounts WHERE id = ?',
+    'SELECT id FROM analytic_accounts WHERE id = ? AND is_archived = FALSE',
     [analyticAccountId]
   );
 
@@ -113,7 +113,7 @@ const update = asyncHandler(async (req, res) => {
   }
 
   const [[aa]] = await pool.query(
-    'SELECT id FROM analytic_accounts WHERE id = ?',
+    'SELECT id FROM analytic_accounts WHERE id = ? AND is_archived = FALSE',
     [updatedAnalyticAccountId]
   );
 

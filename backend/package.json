@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "seed": "node db/seed.js"
+    "seed": "node db/seed.js",
+    "test": "node --test test/api.test.js",
+    "bulk:test": "node test/bulk-e2e.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

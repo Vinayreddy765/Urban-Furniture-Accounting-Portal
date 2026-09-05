@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Archive, ArchiveRestore, Plus } from 'lucide-react';
 import { useData } from '../context/DataContext.jsx';
+import { useAuth, ROLES } from '../context/AuthContext.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import Modal from '../components/Modal.jsx';
 import { Field, Input, Select, Button } from '../components/Field.jsx';
@@ -8,15 +9,14 @@ import { Field, Input, Select, Button } from '../components/Field.jsx';
 const EMPTY = { name: '', type: 'Expense' };
 
 export default function AnalyticAccounts() {
-  const { analyticAccounts, addAnalyticAccount } = useData();
+  const { analyticAccounts, addAnalyticAccount, archiveAnalyticAccount } = useData();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    addAnalyticAccount(form);
-    setForm(EMPTY);
-    setOpen(false);
+    addAnalyticAccount(form).then(() => { setForm(EMPTY); setOpen(false); }).catch(error => window.alert(error.message));
   };
 
   return (
@@ -34,14 +34,14 @@ export default function AnalyticAccounts() {
         <thead>
           <tr>
             <th>Name</th>
-            <th>Type</th>
+            <th>Type</th><th></th>
           </tr>
         </thead>
         <tbody>
           {analyticAccounts.map((a) => (
             <tr key={a.id}>
               <td className="font-medium text-ink">{a.name}</td>
-              <td className="text-inksoft">{a.type}</td>
+              <td className="text-inksoft">{a.type}</td><td className="text-right">{user?.role === ROLES.ADMIN && <button onClick={() => archiveAnalyticAccount(a.id, !a.archived)} className="text-inksoft hover:text-brick" aria-label={a.archived ? `Restore ${a.name}` : `Archive ${a.name}`}>{a.archived ? <ArchiveRestore size={15} /> : <Archive size={15} />}</button>}</td>
             </tr>
           ))}
         </tbody>

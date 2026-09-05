@@ -16,9 +16,12 @@ import {
   Scale,
   TrendingUp,
   PieChart,
+  FileKey,
+  UserCog,
   LogOut,
 } from 'lucide-react';
 import { useAuth, ROLES } from '../context/AuthContext.jsx';
+import { useData } from '../context/DataContext.jsx';
 
 const NAV = [
   {
@@ -37,6 +40,11 @@ const NAV = [
       { to: '/analytic-accounts', label: 'Analytic Accounts', icon: Target },
       { to: '/budgets', label: 'Budgets', icon: Wallet },
     ],
+  },
+  {
+    group: 'Administration',
+    roles: [ROLES.ADMIN],
+    items: [{ to: '/users', label: 'Users', icon: UserCog }],
   },
   {
     group: 'Purchases',
@@ -71,12 +79,20 @@ const NAV = [
       { to: '/reports/balance-sheet', label: 'Balance Sheet', icon: Scale },
       { to: '/reports/profit-loss', label: 'Profit & Loss', icon: TrendingUp },
       { to: '/reports/budget', label: 'Budget Report', icon: PieChart },
+      { to: '/reports/stock', label: 'Stock Report', icon: Package },
+      { to: '/reports/trial-balance', label: 'Trial Balance', icon: Scale },
     ],
+  },
+  {
+    group: 'Ledger',
+    roles: [ROLES.ADMIN, ROLES.INVOICING_USER],
+    items: [{ to: '/journal-entries', label: 'Journal Entries', icon: FileKey }],
   },
 ];
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const { loading, error } = useData();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -136,6 +152,8 @@ export default function Layout() {
 
       <main className="flex-1 overflow-x-hidden px-8 py-8">
         <div className="mx-auto max-w-6xl">
+          {loading && <p className="mb-4 text-sm text-inksoft">Loading ledger data...</p>}
+          {error && <p className="mb-4 border border-brick bg-brick-light px-3 py-2 text-sm text-brick">{error}</p>}
           <Outlet />
         </div>
       </main>

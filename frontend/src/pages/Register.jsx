@@ -40,7 +40,7 @@ export default function Register() {
           <Field label="Full name">
             <Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </Field>
-          <Field label="Login Id"><Input required minLength="6" maxLength="12" pattern="[A-Za-z0-9._-]+" value={form.loginId} onChange={(e) => setForm({ ...form, loginId: e.target.value })} /></Field>
+          <Field label="Login Id"><Input required minLength="6" maxLength="12" pattern="[A-Za-z0-9._\\-]+" value={form.loginId} onChange={(e) => setForm({ ...form, loginId: e.target.value })} /></Field>
           <Field label="Email">
             <Input
               type="email"

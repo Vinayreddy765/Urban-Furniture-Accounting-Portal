@@ -27,15 +27,15 @@ export default function MyInvoices() {
     setAmount(item.total);
   };
 
-  const handlePay = (e) => {
+  const handlePay = async (e) => {
     e.preventDefault();
-    recordPayment({
-      type: payModal.kind === 'Invoice' ? 'Invoice' : 'Bill',
-      targetId: payModal.id,
-      amount: Number(amount),
-      method,
-    });
-    setPayModal(null);
+    const value = Number(amount);
+    const remaining = Number(payModal.total) - Number(payModal.amountPaid || 0);
+    if (!Number.isFinite(value) || value <= 0 || value > remaining + 0.005) return window.alert(`Enter an amount between ₹0.01 and the outstanding ₹${remaining.toFixed(2)}.`);
+    try {
+      await recordPayment({ type: payModal.kind === 'Invoice' ? 'Invoice' : 'Bill', targetId: payModal.id, amount: value, method });
+      setPayModal(null);
+    } catch (error) { window.alert(error.message); }
   };
 
   return (
@@ -67,7 +67,7 @@ export default function MyInvoices() {
                   <Badge tone={it.status === 'Paid' ? 'good' : 'bad'}>{it.status}</Badge>
                 </td>
                 <td className="text-right">
-                  {it.status !== 'Paid' && (
+                  {['Posted', 'PartiallyPaid'].includes(it.status) && (
                     <Button variant="ghost" onClick={() => openPay(it)}>
                       Pay now
                     </Button>
@@ -82,7 +82,7 @@ export default function MyInvoices() {
       <Modal open={!!payModal} onClose={() => setPayModal(null)} title={`Pay ${payModal?.id}`}>
         <form onSubmit={handlePay}>
           <Field label="Amount (₹)">
-            <Input type="number" min="0" required value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <Input type="number" min="0.01" step="0.01" required value={amount} onChange={(e) => setAmount(e.target.value)} />
           </Field>
           <Field label="Pay via">
             <Select value={method} onChange={(e) => setMethod(e.target.value)}>

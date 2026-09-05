@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext.jsx';
 import { useAuth, ROLES } from '../context/AuthContext.jsx';
@@ -20,10 +20,8 @@ export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  if (user?.role === ROLES.CONTACT) {
-    navigate('/my-invoices');
-    return null;
-  }
+  useEffect(() => { if (user?.role === ROLES.CONTACT) navigate('/my-invoices', { replace: true }); }, [user, navigate]);
+  if (user?.role === ROLES.CONTACT) return null;
 
   const {
     contacts,
@@ -32,15 +30,17 @@ export default function Dashboard() {
     salesOrders,
     vendorBills,
     customerInvoices,
+    accounts,
     accountBalance,
   } = useData();
 
-  const unpaidBills = vendorBills.filter((b) => b.status !== 'Paid');
-  const unpaidInvoices = customerInvoices.filter((i) => i.status !== 'Paid');
-  const cash = accountBalance('a1');
-  const bank = accountBalance('a2');
-  const receivable = accountBalance('a3');
-  const payable = accountBalance('a4');
+  const unpaidBills = vendorBills.filter((b) => ['Posted', 'PartiallyPaid'].includes(b.status));
+  const unpaidInvoices = customerInvoices.filter((i) => ['Posted', 'PartiallyPaid'].includes(i.status));
+  const balanceFor = (name) => { const account = accounts.find(a => a.name === name); return account ? accountBalance(account.id) : 0; };
+  const cash = balanceFor('Cash');
+  const bank = balanceFor('Bank');
+  const receivable = balanceFor('Debtors');
+  const payable = balanceFor('Creditors');
 
   return (
     <div>

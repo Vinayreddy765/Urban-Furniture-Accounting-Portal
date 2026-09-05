@@ -6,5 +6,5 @@ const ctrl=require('../controllers/customerInvoice.controller');
 router.use(authenticate);
 router.get('/',authorize('Administrator','Accountant'),ctrl.list);
 router.get('/:id',authorize('Administrator','Accountant','User'),ctrl.getById);
-router.post('/from-so',authorize('Administrator','Accountant'),[body('soId').isInt(),body('invoiceDate').isISO8601()],validate,ctrl.createFromSO);
+router.post('/from-so',authorize('Administrator','Accountant'),[body('soId').isInt({min:1}),body('invoiceDate').isISO8601(),body('dueDate').optional({nullable:true}).isISO8601()],validate,ctrl.createFromSO);
 module.exports=router;

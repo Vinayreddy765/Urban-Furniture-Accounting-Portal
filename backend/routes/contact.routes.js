@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { body } = require('express-validator');
+const { body, param } = require('express-validator');
 const validate = require('../middleware/validate');
 const { authenticate, authorize } = require('../middleware/auth');
 const ctrl = require('../controllers/contact.controller');
@@ -22,7 +22,7 @@ router.post('/', authorize('Administrator', 'Accountant'), [
 
 // Per the specification: Admin can modify/archive master data; Accountant is
 // responsible for creating master data and recording transactions.
-router.put('/:id', authorize('Administrator'), ctrl.update);
-router.patch('/:id/archive', authorize('Administrator'), ctrl.archive);
+router.put('/:id', authorize('Administrator'), [param('id').isInt({ min: 1 }), body('name').optional().trim().notEmpty(), body('type').optional().isIn(['Customer', 'Vendor']), body('email').optional().isEmail()], validate, ctrl.update);
+router.patch('/:id/archive', authorize('Administrator'), [param('id').isInt({ min: 1 }), body('archived').optional().isBoolean()], validate, ctrl.archive);
 
 module.exports = router;

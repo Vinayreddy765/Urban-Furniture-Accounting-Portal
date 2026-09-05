@@ -59,7 +59,7 @@ export default function CustomerInvoices() {
                     <Badge tone={inv.status === 'Paid' ? 'good' : 'bad'}>{inv.status}</Badge>
                   </td>
                   <td className="text-right">
-                    {inv.status !== 'Paid' && (
+                    {['Posted', 'PartiallyPaid'].includes(inv.status) && (
                       <Button variant="ghost" onClick={() => openPay(inv)}>
                         Register payment
                       </Button>

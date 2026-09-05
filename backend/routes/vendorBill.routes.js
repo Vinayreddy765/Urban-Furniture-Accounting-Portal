@@ -14,6 +14,7 @@ router.post(
   [
     body('poId').isInt().withMessage('A Purchase Order must be selected'),
     body('invoiceDate').isISO8601().withMessage('A valid invoice date is required'),
+    body('dueDate').optional({ nullable: true }).isISO8601().withMessage('A valid due date is required'),
   ],
   validate,
   ctrl.createFromPO

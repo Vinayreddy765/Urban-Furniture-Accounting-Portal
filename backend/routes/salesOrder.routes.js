@@ -1,10 +1,10 @@
 const router=require('express').Router();
-const {body}=require('express-validator');
+const {body,param}=require('express-validator');
 const validate=require('../middleware/validate');
 const {authenticate,authorize}=require('../middleware/auth');
 const ctrl=require('../controllers/salesOrder.controller');
 router.use(authenticate,authorize('Administrator','Accountant'));
 router.get('/',ctrl.list); router.get('/:id',ctrl.getById);
-router.post('/',[body('customerId').isInt(),body('orderDate').isISO8601(),body('lines').isArray({min:1})],validate,ctrl.create);
-router.patch('/:id/confirm',ctrl.confirm);
+router.post('/',[body('customerId').isInt({min:1}),body('orderDate').isISO8601(),body('lines').isArray({min:1}),body('lines.*.productId').isInt({min:1}),body('lines.*.quantity').isFloat({gt:0}),body('lines.*.unitPrice').optional().isFloat({min:0}),body('lines.*.taxPercent').optional().isFloat({min:0,max:100}),body('lines.*.analyticAccountId').optional({nullable:true}).isInt({min:1})],validate,ctrl.create);
+router.patch('/:id/confirm',[param('id').isInt({min:1})],validate,ctrl.confirm);
 module.exports=router;

@@ -23,7 +23,7 @@ const getById = asyncHandler(async(req,res)=>{
 const create = asyncHandler(async(req,res)=>{
   const {customerId,orderDate,lines}=req.body;
   if(!Array.isArray(lines)||!lines.length) throw new AppError('A Sales Order needs at least one line item',422);
-  const [[customer]]=await pool.query('SELECT * FROM contacts WHERE id=?',[customerId]);
+  const [[customer]]=await pool.query('SELECT * FROM contacts WHERE id=? AND is_archived=FALSE',[customerId]);
   if(!customer) throw new AppError('Selected customer does not exist',404);
   if(!['Customer'].includes(customer.type)) throw new AppError(`${customer.name} is not registered as a Customer`,422);
 
@@ -33,7 +33,12 @@ const create = asyncHandler(async(req,res)=>{
     const [[product]]=await pool.query('SELECT * FROM products WHERE id=? AND is_archived=FALSE',[line.productId]);
     if(!product) throw new AppError(`Product ${line.productId} does not exist or is archived`,422);
     const qty=Number(line.quantity), price=Number(line.unitPrice ?? product.sales_price), tax=Number(line.taxPercent||0);
-    if(qty<=0||price<0||tax<0) throw new AppError('Sales Order quantities, prices, and tax must be valid',422);
+    if(!Number.isFinite(qty)||!Number.isFinite(price)||!Number.isFinite(tax)||qty<=0||price<0||tax<0) throw new AppError('Sales Order quantities, prices, and tax must be valid',422);
+    if(line.analyticAccountId){
+      if(!Number.isInteger(Number(line.analyticAccountId))) throw new AppError('Analytic Account must be a valid integer',422);
+      const [[aa]]=await pool.query('SELECT id FROM analytic_accounts WHERE id=? AND is_archived=FALSE',[line.analyticAccountId]);
+      if(!aa) throw new AppError(`Analytic Account ${line.analyticAccountId} does not exist or is archived`,422);
+    }
     total += qty*price*(1+tax/100);
     normalized.push([line.productId,qty,price,tax,line.analyticAccountId||null]);
   }

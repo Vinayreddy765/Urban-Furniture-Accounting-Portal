@@ -28,6 +28,7 @@ const create = asyncHandler(async (req, res) => {
 const update = asyncHandler(async (req, res) => {
   const [[account]] = await pool.query('SELECT * FROM accounts WHERE id = ?', [req.params.id]);
   if (!account) throw new AppError('Account not found', 404);
+  if (account.is_archived) throw new AppError('Restore the account before editing it', 422);
   const { name, type } = req.body;
   await pool.query('UPDATE accounts SET name = ?, type = ? WHERE id = ?', [name ?? account.name, type ?? account.type, req.params.id]);
   const [[updated]] = await pool.query('SELECT * FROM accounts WHERE id = ?', [req.params.id]);
@@ -38,7 +39,8 @@ const archive = asyncHandler(async (req, res) => {
   const [[account]] = await pool.query('SELECT * FROM accounts WHERE id = ?', [req.params.id]);
   if (!account) throw new AppError('Account not found', 404);
 
-  await pool.query('UPDATE accounts SET is_archived = TRUE WHERE id = ?', [req.params.id]);
+  const archived = req.body?.archived !== false;
+  await pool.query('UPDATE accounts SET is_archived = ? WHERE id = ?', [archived, req.params.id]);
   const [[updated]] = await pool.query('SELECT * FROM accounts WHERE id = ?', [req.params.id]);
   return ok(res, updated);
 });

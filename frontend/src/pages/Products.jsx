@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Archive, ArchiveRestore, Pencil, Search } from 'lucide-react';
 import { useData } from '../context/DataContext.jsx';
+import { useAuth, ROLES } from '../context/AuthContext.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import Modal from '../components/Modal.jsx';
@@ -11,6 +12,8 @@ const EMPTY = { name: '', type: 'Goods', salesPrice: '', cost: '', category: '' 
 
 export default function Products() {
   const { products, addProduct, updateProduct, archiveProduct } = useData();
+  const { user } = useAuth();
+  const isAdministrator = user?.role === ROLES.ADMIN;
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
@@ -82,16 +85,18 @@ export default function Products() {
                 <td className="text-right font-num">{formatCurrency(p.salesPrice)}</td>
                 <td className="text-right font-num text-inksoft">{formatCurrency(p.cost)}</td>
                 <td className="text-right">
-                  <button onClick={() => openEdit(p)} className="mr-3 text-inksoft hover:text-walnut" aria-label={`Edit ${p.name}`}>
-                    <Pencil size={15} />
-                  </button>
-                  <button
-                    onClick={() => archiveProduct(p.id, !p.archived)}
-                    className="text-inksoft hover:text-brick"
-                    aria-label={p.archived ? `Restore ${p.name}` : `Archive ${p.name}`}
-                  >
-                    {p.archived ? <ArchiveRestore size={15} /> : <Archive size={15} />}
-                  </button>
+                  {isAdministrator && <>
+                    <button onClick={() => openEdit(p)} className="mr-3 text-inksoft hover:text-walnut" aria-label={`Edit ${p.name}`}>
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      onClick={() => archiveProduct(p.id, !p.archived)}
+                      className="text-inksoft hover:text-brick"
+                      aria-label={p.archived ? `Restore ${p.name}` : `Archive ${p.name}`}
+                    >
+                      {p.archived ? <ArchiveRestore size={15} /> : <Archive size={15} />}
+                    </button>
+                  </>}
                 </td>
               </tr>
             ))}

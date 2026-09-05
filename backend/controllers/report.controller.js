@@ -6,6 +6,8 @@ const AppError=require('../utils/AppError');
 function period(req){
   const {from,to}=req.query;
   if(!from||!to) throw new AppError('Both from and to dates are required',422);
+  const isDate=value=>/^\d{4}-\d{2}-\d{2}$/.test(value)&&!Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+  if(!isDate(from)||!isDate(to)) throw new AppError('Dates must use YYYY-MM-DD format',422);
   if(from>to) throw new AppError('from date cannot be after to date',422);
   return [from,to];
 }
@@ -21,7 +23,7 @@ const balanceSheet=asyncHandler(async(req,res)=>{
     FROM accounts a
     LEFT JOIN journal_entry_lines jel ON jel.account_id=a.id
     LEFT JOIN journal_entries je ON je.id=jel.journal_entry_id
-    WHERE a.type IN ('Asset','Liability','Capital') AND a.is_archived=FALSE
+    WHERE a.type IN ('Asset','Liability','Capital')
     GROUP BY a.id ORDER BY a.type,a.name`,[to,to,to,to]);
   const clean=rows.map(r=>({...r,debit:Number(r.debit),credit:Number(r.credit),balance:Number(r.balance)}));
   const assets=clean.filter(r=>r.type==='Asset').reduce((s,r)=>s+r.balance,0);
@@ -64,10 +66,15 @@ const budget=asyncHandler(async(req,res)=>{
   return ok(res,{period:{from,to},budgets:clean});
 });
 
+const stock=asyncHandler(async(req,res)=>{
+  const [rows]=await pool.query(`SELECT id,name,type,stock_quantity,is_archived FROM products WHERE type='Goods' ORDER BY name`);
+  return ok(res,{products:rows.map(row=>({...row,stock_quantity:Number(row.stock_quantity)}))});
+});
+
 const trialBalance=asyncHandler(async(req,res)=>{
   const [from,to]=period(req);
-  const [rows]=await pool.query(`SELECT a.id,a.name,a.type,COALESCE(SUM(CASE WHEN je.entry_date BETWEEN ? AND ? THEN jel.debit ELSE 0 END),0) debit,COALESCE(SUM(CASE WHEN je.entry_date BETWEEN ? AND ? THEN jel.credit ELSE 0 END),0) credit FROM accounts a LEFT JOIN journal_entry_lines jel ON jel.account_id=a.id LEFT JOIN journal_entries je ON je.id=jel.journal_entry_id WHERE a.is_archived=FALSE GROUP BY a.id ORDER BY a.type,a.name`,[from,to,from,to]);
+  const [rows]=await pool.query(`SELECT a.id,a.name,a.type,COALESCE(SUM(CASE WHEN je.entry_date BETWEEN ? AND ? THEN jel.debit ELSE 0 END),0) debit,COALESCE(SUM(CASE WHEN je.entry_date BETWEEN ? AND ? THEN jel.credit ELSE 0 END),0) credit FROM accounts a LEFT JOIN journal_entry_lines jel ON jel.account_id=a.id LEFT JOIN journal_entries je ON je.id=jel.journal_entry_id GROUP BY a.id ORDER BY a.type,a.name`,[from,to,from,to]);
   const clean=rows.map(r=>({...r,debit:Number(r.debit),credit:Number(r.credit)}));
   return ok(res,{period:{from,to},accounts:clean,totalDebit:clean.reduce((s,r)=>s+r.debit,0),totalCredit:clean.reduce((s,r)=>s+r.credit,0)});
 });
-module.exports={balanceSheet,profitLoss,budget,trialBalance};
+module.exports={balanceSheet,profitLoss,budget,stock,trialBalance};

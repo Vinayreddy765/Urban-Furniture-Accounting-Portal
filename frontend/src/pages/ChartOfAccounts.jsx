@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Archive, ArchiveRestore, Plus } from 'lucide-react';
 import { useData } from '../context/DataContext.jsx';
+import { useAuth, ROLES } from '../context/AuthContext.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import Modal from '../components/Modal.jsx';
 import { Field, Input, Select, Button, Badge } from '../components/Field.jsx';
@@ -10,15 +11,14 @@ const EMPTY = { name: '', type: 'Asset' };
 const TONE = { Asset: 'good', Liability: 'bad', Income: 'good', Expense: 'bad', Capital: 'brass' };
 
 export default function ChartOfAccounts() {
-  const { accounts, addAccount, accountBalance } = useData();
+  const { accounts, addAccount, archiveAccount, accountBalance } = useData();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    addAccount(form);
-    setForm(EMPTY);
-    setOpen(false);
+    addAccount(form).then(() => { setForm(EMPTY); setOpen(false); }).catch(error => window.alert(error.message));
   };
 
   const grouped = ['Asset', 'Liability', 'Income', 'Expense', 'Capital'].map((type) => ({
@@ -46,7 +46,7 @@ export default function ChartOfAccounts() {
                   <thead>
                     <tr>
                       <th>Account name</th>
-                      <th className="text-right">Current balance</th>
+                      <th className="text-right">Current balance</th><th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -54,6 +54,7 @@ export default function ChartOfAccounts() {
                       <tr key={a.id}>
                         <td className="text-ink">{a.name}</td>
                         <td className="text-right font-num">{formatCurrency(accountBalance(a.id))}</td>
+                        <td className="text-right">{user?.role === ROLES.ADMIN && <button onClick={() => archiveAccount(a.id, !a.archived)} className="text-inksoft hover:text-brick" aria-label={a.archived ? `Restore ${a.name}` : `Archive ${a.name}`}>{a.archived ? <ArchiveRestore size={15} /> : <Archive size={15} />}</button>}</td>
                       </tr>
                     ))}
                   </tbody>

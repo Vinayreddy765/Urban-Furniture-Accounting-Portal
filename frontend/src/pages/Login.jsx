@@ -28,7 +28,7 @@ export default function Login() {
 
         <form onSubmit={handleSubmit}>
           <Field label="Login Id">
-            <Input required minLength="6" maxLength="12" pattern="[A-Za-z0-9._-]+" autoComplete="username" value={loginId} onChange={(e) => setLoginId(e.target.value)} />
+            <Input required minLength="6" maxLength="12" pattern="[A-Za-z0-9._\\-]+" autoComplete="username" value={loginId} onChange={(e) => setLoginId(e.target.value)} />
           </Field>
           <Field label="Password">
             <Input

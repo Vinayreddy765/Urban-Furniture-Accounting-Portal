@@ -59,7 +59,7 @@ export default function VendorBills() {
                     <Badge tone={b.status === 'Paid' ? 'good' : 'bad'}>{b.status}</Badge>
                   </td>
                   <td className="text-right">
-                    {b.status !== 'Paid' && (
+                    {['Posted', 'PartiallyPaid'].includes(b.status) && (
                       <Button variant="ghost" onClick={() => openPay(b)}>
                         Register payment
                       </Button>

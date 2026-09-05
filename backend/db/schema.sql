@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS products (
   type ENUM('Goods','Service','Combo') NOT NULL,
   sales_price DECIMAL(12,2) NOT NULL DEFAULT 0,
   cost_price DECIMAL(12,2) NOT NULL DEFAULT 0,
+  stock_quantity DECIMAL(14,2) NOT NULL DEFAULT 0,
   category_id INT,
   profile_image VARCHAR(255),
   is_archived BOOLEAN NOT NULL DEFAULT FALSE,
@@ -73,7 +74,8 @@ CREATE TABLE IF NOT EXISTS journals (
 CREATE TABLE IF NOT EXISTS analytic_accounts (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) NOT NULL UNIQUE,
-  type ENUM('Income','Expense') NOT NULL
+  type ENUM('Income','Expense') NOT NULL,
+  is_archived BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS budgets (

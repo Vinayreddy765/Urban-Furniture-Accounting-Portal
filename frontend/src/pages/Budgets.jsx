@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useData } from '../context/DataContext.jsx';
 import PageHeader from '../components/PageHeader.jsx';
@@ -6,7 +6,13 @@ import Modal from '../components/Modal.jsx';
 import { Field, Input, Select, Button, Badge } from '../components/Field.jsx';
 import { formatCurrency } from '../utils/format.js';
 
-const EMPTY = { name: '', period: '', responsible: '', analyticAccountId: '', plannedAmount: '' };
+const EMPTY = { name: '', periodStart: '', periodEnd: '', responsiblePerson: '', analyticAccountId: '', plannedAmount: '' };
+
+function ActualCell({ budget, budgetActual }) {
+  const [result, setResult] = useState({ planned: budget.plannedAmount, actual: 0, variance: budget.plannedAmount });
+  useEffect(() => { let active = true; budgetActual(budget).then(value => { if (active) setResult(value); }); return () => { active = false; }; }, [budget, budgetActual]);
+  return <><td className="text-right font-num">{formatCurrency(result.actual)} <Badge tone={result.variance >= 0 ? 'good' : 'bad'}>{result.variance >= 0 ? 'Under' : 'Over'}</Badge></td></>;
+}
 
 export default function Budgets() {
   const { budgets, analyticAccounts, addBudget, budgetActual } = useData();
@@ -15,9 +21,8 @@ export default function Budgets() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    addBudget({ ...form, plannedAmount: Number(form.plannedAmount) });
-    setForm(EMPTY);
-    setOpen(false);
+    if (!form.periodStart || !form.periodEnd || form.periodStart > form.periodEnd) return window.alert('Enter a valid budget period.');
+    addBudget({ ...form, plannedAmount: Number(form.plannedAmount) }).then(() => { setForm(EMPTY); setOpen(false); }).catch(error => window.alert(error.message));
   };
 
   return (
@@ -40,17 +45,13 @@ export default function Budgets() {
         </thead>
         <tbody>
           {budgets.map((b) => {
-            const { planned, actual, variance } = budgetActual(b);
             return (
               <tr key={b.id}>
                 <td className="font-medium text-ink">{b.name}</td>
-                <td className="text-inksoft">{b.period}</td>
-                <td className="text-inksoft">{b.responsible}</td>
-                <td className="text-right font-num">{formatCurrency(planned)}</td>
-                <td className="text-right font-num">
-                  {formatCurrency(actual)}{' '}
-                  <Badge tone={variance >= 0 ? 'good' : 'bad'}>{variance >= 0 ? 'Under' : 'Over'}</Badge>
-                </td>
+                <td className="text-inksoft">{b.periodStart} to {b.periodEnd}</td>
+                <td className="text-inksoft">{b.responsiblePerson}</td>
+                <td className="text-right font-num">{formatCurrency(b.plannedAmount)}</td>
+                <ActualCell budget={b} budgetActual={budgetActual} />
               </tr>
             );
           })}
@@ -63,11 +64,14 @@ export default function Budgets() {
             <Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Period">
-              <Input placeholder="e.g. Jul–Sep 2026" required value={form.period} onChange={(e) => setForm({ ...form, period: e.target.value })} />
+            <Field label="Period start">
+              <Input type="date" required value={form.periodStart} onChange={(e) => setForm({ ...form, periodStart: e.target.value })} />
+            </Field>
+            <Field label="Period end">
+              <Input type="date" required value={form.periodEnd} onChange={(e) => setForm({ ...form, periodEnd: e.target.value })} />
             </Field>
             <Field label="Responsible person">
-              <Input required value={form.responsible} onChange={(e) => setForm({ ...form, responsible: e.target.value })} />
+              <Input required value={form.responsiblePerson} onChange={(e) => setForm({ ...form, responsiblePerson: e.target.value })} />
             </Field>
           </div>
           <Field label="Analytic account">

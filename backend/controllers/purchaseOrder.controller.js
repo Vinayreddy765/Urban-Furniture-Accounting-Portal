@@ -41,7 +41,7 @@ const create = asyncHandler(async (req, res) => {
     throw new AppError('A Purchase Order needs at least one line item', 422);
   }
 
-  const [[vendor]] = await pool.query('SELECT * FROM contacts WHERE id = ?', [vendorId]);
+  const [[vendor]] = await pool.query('SELECT * FROM contacts WHERE id = ? AND is_archived = FALSE', [vendorId]);
   if (!vendor) throw new AppError('Selected vendor does not exist', 404);
   if (!['Vendor'].includes(vendor.type)) {
     throw new AppError(`${vendor.name} is not registered as a Vendor`, 422);
@@ -54,9 +54,10 @@ const create = asyncHandler(async (req, res) => {
     if (!product) throw new AppError(`Product ${line.productId} does not exist or is archived`, 422);
     const qty = Number(line.quantity);
     const price = Number(line.unitPrice ?? product.cost_price);
-    if (qty <= 0 || price < 0) throw new AppError('Purchase Order quantities and prices must be valid', 422);
+    if (!Number.isFinite(qty) || !Number.isFinite(price) || qty <= 0 || price < 0) throw new AppError('Purchase Order quantities and prices must be valid', 422);
     if (line.analyticAccountId) {
-      const [[aa]] = await pool.query('SELECT id FROM analytic_accounts WHERE id = ?', [line.analyticAccountId]);
+      if (!Number.isInteger(Number(line.analyticAccountId))) throw new AppError('Analytic Account must be a valid integer', 422);
+      const [[aa]] = await pool.query('SELECT id FROM analytic_accounts WHERE id = ? AND is_archived = FALSE', [line.analyticAccountId]);
       if (!aa) throw new AppError(`Analytic Account ${line.analyticAccountId} does not exist`, 422);
     }
     total += qty * price;

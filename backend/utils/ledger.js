@@ -16,6 +16,13 @@ async function postJournalEntry(conn, { journalId, entryDate, reference, sourceT
   const [accounts] = await conn.query(`SELECT id FROM accounts WHERE id IN (?) AND is_archived=FALSE`, [accountIds]);
   if (accounts.length !== accountIds.length) throw new AppError('Journal entry contains an invalid or archived account', 422);
 
+  const analyticIds = [...new Set(lines.filter(l => l.analyticAccountId !== undefined && l.analyticAccountId !== null).map(l => Number(l.analyticAccountId)))];
+    if (analyticIds.some(id => !Number.isInteger(id) || id <= 0)) throw new AppError('Every analytic account must be valid', 422);
+    if (analyticIds.length) {
+      const [analyticAccounts] = await conn.query('SELECT id FROM analytic_accounts WHERE id IN (?) AND is_archived=FALSE', [analyticIds]);
+      if (analyticAccounts.length !== analyticIds.length) throw new AppError('Journal entry contains an invalid or archived analytic account', 422);
+    }
+
   for (const line of lines) {
     const debit = Number(line.debit || 0);
     const credit = Number(line.credit || 0);

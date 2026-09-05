@@ -44,9 +44,10 @@ const create = asyncHandler(async (req, res) => {
   try {
     await conn.beginTransaction();
 
-    const [[cashOrBankAccount]] = await conn.query('SELECT id FROM accounts WHERE name = ? AND is_archived = FALSE', [method]);
-    const [[journal]] = await conn.query('SELECT id FROM journals WHERE type = ? AND is_archived = FALSE LIMIT 1', [method]);
-    if (!cashOrBankAccount || !journal) throw new AppError(`Required ${method} account/journal is missing. Run the seed script.`, 500);
+    const [[journal]] = await conn.query('SELECT id, cash_or_bank_account_id FROM journals WHERE type = ? AND is_archived = FALSE LIMIT 1', [method]);
+    if (!journal || !journal.cash_or_bank_account_id) throw new AppError(`Required ${method} journal/account is missing. Run the seed script.`, 500);
+    const [[cashOrBankAccount]] = await conn.query('SELECT id FROM accounts WHERE id = ? AND is_archived = FALSE', [journal.cash_or_bank_account_id]);
+    if (!cashOrBankAccount) throw new AppError(`The configured ${method} journal account is missing or archived`, 422);
 
     let journalEntryId;
     let paymentId;

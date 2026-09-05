@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Archive, ArchiveRestore, Pencil, Search } from 'lucide-react';
 import { useData } from '../context/DataContext.jsx';
+import { useAuth, ROLES } from '../context/AuthContext.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 import Modal from '../components/Modal.jsx';
@@ -10,6 +11,8 @@ const EMPTY = { name: '', type: 'Customer', email: '', mobile: '', city: '', sta
 
 export default function Contacts() {
   const { contacts, addContact, updateContact, archiveContact } = useData();
+  const { user } = useAuth();
+  const isAdministrator = user?.role === ROLES.ADMIN;
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
@@ -54,7 +57,7 @@ export default function Contacts() {
 
   return (
     <div>
-      <PageHeader title={`Contacts (${visible.length})`} description="Vendors, customers, and combined contacts used across purchases and sales.">
+      <PageHeader title={`Contacts (${visible.length})`} description="Vendors and customers used across purchases and sales.">
         <div className="relative mr-2"><Search size={15} className="absolute left-2 top-2.5 text-inksoft" /><Input className="w-56 pl-7" placeholder="Search contacts…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} /></div>
         <Button variant="secondary" onClick={() => setShowArchived((s) => !s)}>
           {showArchived ? 'View active' : 'View archived'}
@@ -89,16 +92,18 @@ export default function Contacts() {
                 <td className="text-inksoft">{c.mobile}</td>
                 <td className="text-inksoft">{[c.city, c.state].filter(Boolean).join(', ')}</td>
                 <td className="text-right">
-                  <button onClick={() => openEdit(c)} className="mr-3 text-inksoft hover:text-walnut" aria-label={`Edit ${c.name}`}>
-                    <Pencil size={15} />
-                  </button>
-                  <button
-                    onClick={() => archiveContact(c.id, !c.archived)}
-                    className="text-inksoft hover:text-brick"
-                    aria-label={c.archived ? `Restore ${c.name}` : `Archive ${c.name}`}
-                  >
-                    {c.archived ? <ArchiveRestore size={15} /> : <Archive size={15} />}
-                  </button>
+                  {isAdministrator && <>
+                    <button onClick={() => openEdit(c)} className="mr-3 text-inksoft hover:text-walnut" aria-label={`Edit ${c.name}`}>
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      onClick={() => archiveContact(c.id, !c.archived)}
+                      className="text-inksoft hover:text-brick"
+                      aria-label={c.archived ? `Restore ${c.name}` : `Archive ${c.name}`}
+                    >
+                      {c.archived ? <ArchiveRestore size={15} /> : <Archive size={15} />}
+                    </button>
+                  </>}
                 </td>
               </tr>
             ))}

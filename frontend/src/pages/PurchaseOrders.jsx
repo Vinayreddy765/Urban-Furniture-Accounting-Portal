@@ -8,7 +8,7 @@ import LineItemsEditor from '../components/LineItemsEditor.jsx';
 import { Field, Select, Input, Button, Badge } from '../components/Field.jsx';
 import { formatCurrency, formatDate } from '../utils/format.js';
 
-const STATUS_TONE = { Draft: 'neutral', Billed: 'brass' };
+const STATUS_TONE = { Draft: 'neutral', Confirmed: 'brass' };
 
 export default function PurchaseOrders() {
   const { purchaseOrders, contacts, products, createPurchaseOrder, convertPOToBill, confirmPurchaseOrder } = useData();

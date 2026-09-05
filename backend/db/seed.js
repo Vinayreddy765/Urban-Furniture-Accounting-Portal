@@ -13,6 +13,8 @@ const ACCOUNTS = [
   { name: 'Tax Payable', type: 'Liability' },
   { name: 'Sales Income', type: 'Income' },
   { name: 'Purchase Expense', type: 'Expense' },
+  { name: 'Inventory', type: 'Asset' },
+  { name: 'Cost of Goods Sold', type: 'Expense' },
   { name: 'Capital', type: 'Capital' },
 ];
 
@@ -28,7 +30,7 @@ async function seed() {
       return row.id;
     };
 
-    const purchaseExpense = await idOf('Purchase Expense');
+    const inventory = await idOf('Inventory');
     const creditors = await idOf('Creditors');
     const debtors = await idOf('Debtors');
     const salesIncome = await idOf('Sales Income');
@@ -36,7 +38,7 @@ async function seed() {
     const cash = await idOf('Cash');
 
     const JOURNALS = [
-      { name: 'Purchase Journal', type: 'Purchase', debit: purchaseExpense, credit: creditors, cashBank: null },
+      { name: 'Purchase Journal', type: 'Purchase', debit: inventory, credit: creditors, cashBank: null },
       { name: 'Sales Journal', type: 'Sales', debit: debtors, credit: salesIncome, cashBank: null },
       { name: 'Bank Journal', type: 'Bank', debit: null, credit: null, cashBank: bank },
       { name: 'Cash Journal', type: 'Cash', debit: null, credit: null, cashBank: cash },
@@ -50,6 +52,8 @@ async function seed() {
            VALUES (?, ?, ?, ?, ?)`,
           [j.name, j.type, j.debit, j.credit, j.cashBank]
         );
+      } else if (j.name === 'Purchase Journal') {
+        await conn.query('UPDATE journals SET default_debit_account_id = ?, default_credit_account_id = ? WHERE id = ?', [j.debit, j.credit, existing.id]);
       }
     }
 

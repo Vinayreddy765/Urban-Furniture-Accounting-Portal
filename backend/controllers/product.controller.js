@@ -58,6 +58,7 @@ const update = asyncHandler(async (req, res) => {
 
   const [[existing]] = await pool.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
   if (!existing) throw new AppError('Product not found', 404);
+  if (existing.is_archived) throw new AppError('Restore the product before editing it', 422);
 
   const categoryId = category !== undefined ? await findOrCreateCategory(category) : existing.category_id;
 
@@ -82,7 +83,8 @@ const archive = asyncHandler(async (req, res) => {
   const [[product]] = await pool.query('SELECT * FROM products WHERE id = ?', [req.params.id]);
   if (!product) throw new AppError('Product not found', 404);
 
-  await pool.query('UPDATE products SET is_archived = TRUE WHERE id = ?', [req.params.id]);
+  const archived = req.body?.archived !== false;
+  await pool.query('UPDATE products SET is_archived = ? WHERE id = ?', [archived, req.params.id]);
   const [[updated]] = await pool.query(`${PRODUCT_SELECT} WHERE p.id = ?`, [req.params.id]);
   return ok(res, updated);
 });
